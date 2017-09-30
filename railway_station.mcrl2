@@ -1,0 +1,71 @@
+sort SignalId        = struct sig_t1 | sig_t2 | sig_w | sig_e;
+        Color            = struct red | green;
+        TrackId        = struct track_1 | track_2 | track_w | track_e;
+        ControllerId = struct ctrl_w | ctrl_e;
+        SensorId      = struct sens_w | sens_e;
+        SwitchId      = struct switch_e | switch_w;
+        SwitchPos   = struct pos_t1 | pos_t2;
+
+map sensor_to_controller: SensorId -> ControllerId;
+eqn  sensor_to_controller(sens_w) = ctrl_w;
+        sensor_to_controller(sens_e)  = ctrl_e;
+
+map sensor_to_switchPos: SensorId -> SwitchPos;
+eqn  sensor_to_switchPos(sens_w) = pos_t2;
+        sensor_to_switchPos(sens_e)  = pos_t1;
+
+map controller_to_signal: ControllerId -> SignalId;
+eqn  controller_to_signal(ctrl_w) = sig_w;
+        controller_to_signal(ctrl_e)  = sig_e;
+
+map controller_to_switch: ControllerId -> SwitchId;
+eqn  controller_to_switch(ctrl_w) = switch_w;
+        controller_to_switch(ctrl_e)  = switch_e;
+
+map controller_to_track: ControllerId -> TrackId;
+eqn  controller_to_track(ctrl_w) = track_w;
+        controller_to_track(ctrl_e)  = track_e;
+
+map controller_to_sensor: ControllerId -> SensorId;
+eqn  controller_to_sensor(ctrl_w) = sens_w;
+        controller_to_sensor(ctrl_e)  = sens_e;
+
+map signal_to_track: SignalId -> TrackId;
+eqn  signal_to_track(sig_w) = track_2;
+        signal_to_track(sig_e)  = track_1;
+        signal_to_track(sig_t1) = track_w;
+        signal_to_track(sig_t2) = track_e;
+
+act setColor: SignalId # Color;
+      sensorTriggered: SensorId;
+      setSwitchPosition: SwitchId # SwitchPos;
+      s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
+
+proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool) = 
+(waiting_t1) -> r_trackOccupied(signal_to_track(sig_t1), false)
+.setSwitchPosition(switch_w, pos_t1).setColor(sig_t1, green)
+.s_trackOccupied(track_1, false).ControllerStation(waiting_t1 = false)
++ (!waiting_t1) -> r_trackOccupied(signal_to_track(sig_t1), true)
+.setColor(sig_t1, red).ControllerStation(waiting_t1 = true)
++ (waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), false)
+.setSwitchPosition(switch_e, pos_t2).setColor(sig_t2, green)
+.s_trackOccupied(track_2, false).ControllerStation(waiting_t2 = false)
++ (!waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), true)
+.setColor(sig_t2, red).ControllerStation(waiting_t2 = true)
+;
+
+proc Controller(ctrl: ControllerId, waiting: Bool) = 
+sum s: SensorId.(sensor_to_controller(s) == ctrl) -> sensorTriggered(s)
+.s_trackOccupied(controller_to_track(ctrl), true)
+.setColor(controller_to_signal(ctrl),red).Controller(waiting = true)
++ (waiting) -> r_trackOccupied(signal_to_track(controller_to_signal(ctrl)), false)
+.setSwitchPosition(controller_to_switch(ctrl), sensor_to_switchPos(controller_to_sensor(ctrl)))
+.setColor(controller_to_signal(ctrl), green)
+.s_trackOccupied(signal_to_track(controller_to_signal(ctrl)), true)
+.s_trackOccupied(controller_to_track(ctrl), false)
+.Controller(waiting = false)
+;
+
+init 
+Controller(ctrl_w, false) || Controller(ctrl_e, false) || ControllerStation(false, false)
+;
