@@ -46,24 +46,29 @@ proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool) =
 .setSwitchPosition(switch_w, pos_t1).setColor(sig_t1, green)
 .s_trackOccupied(track_1, false).ControllerStation(waiting_t1 = false)
 + (!waiting_t1) -> r_trackOccupied(signal_to_track(sig_t1), true)
-.setColor(sig_t1, red).ControllerStation(waiting_t1 = true)
+.setColor(sig_t1, red).s_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
 + (waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), false)
 .setSwitchPosition(switch_e, pos_t2).setColor(sig_t2, green)
 .s_trackOccupied(track_2, false).ControllerStation(waiting_t2 = false)
 + (!waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), true)
-.setColor(sig_t2, red).ControllerStation(waiting_t2 = true)
+.setColor(sig_t2, red).s_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
++ r_trackOccupied(track_e, true).s_trackOccupied(track_1, waiting_t1).ControllerStation()
++ r_trackOccupied(track_w, true).s_trackOccupied(track_2, waiting_t2).ControllerStation()
 ;
 
 proc Controller(ctrl: ControllerId, waiting: Bool) = 
-sum s: SensorId.(sensor_to_controller(s) == ctrl) -> sensorTriggered(s)
+(!waiting) -> sum s: SensorId.(sensor_to_controller(s) == ctrl) -> sensorTriggered(s)
 .s_trackOccupied(controller_to_track(ctrl), true)
 .setColor(controller_to_signal(ctrl),red).Controller(waiting = true)
-+ (waiting) -> r_trackOccupied(signal_to_track(controller_to_signal(ctrl)), false)
++ (waiting) -> s_trackOccupied(controller_to_track(ctrl), true)
+.r_trackOccupied(signal_to_track(controller_to_signal(ctrl)), false)
 .setSwitchPosition(controller_to_switch(ctrl), sensor_to_switchPos(controller_to_sensor(ctrl)))
 .setColor(controller_to_signal(ctrl), green)
 .s_trackOccupied(signal_to_track(controller_to_signal(ctrl)), true)
 .s_trackOccupied(controller_to_track(ctrl), false)
 .Controller(waiting = false)
++ r_trackOccupied(track_1, true).s_trackOccupied(track_w, waiting).Controller()
++ r_trackOccupied(track_2, true).s_trackOccupied(track_e, waiting).Controller()
 ;
 
 init 
