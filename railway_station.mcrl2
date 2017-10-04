@@ -67,5 +67,7 @@ sum s: SensorId.(sensor_to_controller(s) == ctrl) -> sensorTriggered(s)
 ;
 
 init 
+allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied},
+comm({s_trackOccupied | r_trackOccupied -> trackOccupied},
 Controller(ctrl_w, false) || Controller(ctrl_e, false) || ControllerStation(false, false)
-;
+));
