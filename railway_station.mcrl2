@@ -5,6 +5,7 @@ sort SignalId        = struct sig_t1 | sig_t2 | sig_w | sig_e;
         SensorId      = struct sens_w | sens_e;
         SwitchId      = struct switch_e | switch_w;
         SwitchPos   = struct pos_t1 | pos_t2;
+        TrackStatus = struct free | occupied;
 
 map sensor_to_controller: SensorId -> ControllerId;
 eqn  sensor_to_controller(sens_w) = ctrl_w;
@@ -36,43 +37,62 @@ eqn  signal_to_track(sig_w) = track_2;
         signal_to_track(sig_t1) = track_w;
         signal_to_track(sig_t2) = track_e;
 
+map controller_to_nextTrain: ControllerId -> TrackId;
+eqn controller_to_nextTrain(ctrl_w) = track_2;
+	controller_to_nextTrain(ctrl_e) = track_1;
+
+
+
 act setColor: SignalId # Color;
       sensorTriggered: SensorId;
       setSwitchPosition: SwitchId # SwitchPos;
       s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
+      s_trainIncoming :TrackId;
 
-proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool) = 
-(waiting_t1) -> r_trackOccupied(signal_to_track(sig_t1), false)
-.setSwitchPosition(switch_w, pos_t1).setColor(sig_t1, green)
-.s_trackOccupied(track_1, false).ControllerStation(waiting_t1 = false)
-+ (!waiting_t1) -> r_trackOccupied(signal_to_track(sig_t1), true)
-.setColor(sig_t1, red).s_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
-+ (waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), false)
-.setSwitchPosition(switch_e, pos_t2).setColor(sig_t2, green)
-.s_trackOccupied(track_2, false).ControllerStation(waiting_t2 = false)
-+ (!waiting_t2) -> r_trackOccupied(signal_to_track(sig_t2), true)
-.setColor(sig_t2, red).s_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
-+ r_trackOccupied(track_e, true).s_trackOccupied(track_1, waiting_t1).ControllerStation()
-+ r_trackOccupied(track_w, true).s_trackOccupied(track_2, waiting_t2).ControllerStation()
-;
 
-proc Controller(ctrl: ControllerId, waiting: Bool) = 
-(!waiting) -> sum s: SensorId.(sensor_to_controller(s) == ctrl) -> sensorTriggered(s)
-.s_trackOccupied(controller_to_track(ctrl), true)
+
+proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
+
+  r_trackOccupied(track_1, true).setColor(sig_t1, red).ControllerStation(waiting_t1 = true)
++ r_trackOccupied(track_2, true).setColor(sig_t2, red).ControllerStation(waiting_t2 = true)
+
++ (waiting_t1 == true)->s_trackOccupied(controller_to_track(ctrl_w),false).ControllerStation(waiting_t1 = false, listening_t1 = true)
++ (listening_t1 == true)->r_trackOccupied(controller_to_track(ctrl_w),false)
+.setColor(sig_t1, green).ControllerStation(listening_t1 = false)
+
++ (waiting_t2 == true)->s_trackOccupied(controller_to_track(ctrl_e),false).ControllerStation(waiting_t2 = false, listening_t2 = true)
++ (listening_t2 == true)->r_trackOccupied(controller_to_track(ctrl_e),false)
+.setColor(sig_t2, green).ControllerStation(listening_t2 = false)
+
+
++ r_trackOccupied(track_1, false).ControllerStation(TrainIncomingEast = true)
++ r_trackOccupied(track_2, false).ControllerStation(TrainIncomingWest = true)
+
++ (!waiting_t1 && TrainIncomingEast==true)-> s_trackOccupied(track_1,false).ControllerStation(TrainIncomingEast = false)
++ (!waiting_t2 && TrainIncomingWest==true)-> s_trackOccupied(track_2,false).ControllerStation(TrainIncomingWest = false);
+
+
+
+proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listening: Bool) = 
+
+(!waiting && !listening)-> sum s:SensorId.(sensor_to_controller(s) == ctrl)-> sensorTriggered(s)
 .setColor(controller_to_signal(ctrl),red).Controller(waiting = true)
-+ (waiting) -> s_trackOccupied(controller_to_track(ctrl), true)
-.r_trackOccupied(signal_to_track(controller_to_signal(ctrl)), false)
-.setSwitchPosition(controller_to_switch(ctrl), sensor_to_switchPos(controller_to_sensor(ctrl)))
-.setColor(controller_to_signal(ctrl), green)
-.s_trackOccupied(signal_to_track(controller_to_signal(ctrl)), true)
-.s_trackOccupied(controller_to_track(ctrl), false)
-.Controller(waiting = false)
-+ r_trackOccupied(track_1, true).s_trackOccupied(track_w, waiting).Controller()
-+ r_trackOccupied(track_2, true).s_trackOccupied(track_e, waiting).Controller()
-;
+
++ (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).Controller(waiting = false, listening = true)
+
++ (listening == true) ->r_trackOccupied(controller_to_nextTrain(ctrl), false)
+.setColor(controller_to_signal(ctrl),green).s_trackOccupied(controller_to_nextTrain(ctrl),true).Controller(listening = false)
+
++ r_trackOccupied(controller_to_track(ctrl), false).Controller(TrainIncoming = true)
+
++ (!waiting && TrainIncoming == true) -> s_trackOccupied(controller_to_track(ctrl),false).Controller(TrainIncoming = false);
+
+
+
+
 
 init 
 allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied},
 comm({s_trackOccupied | r_trackOccupied -> trackOccupied},
-Controller(ctrl_w, false) || Controller(ctrl_e, false) || ControllerStation(false, false)
+Controller(ctrl_w, false,false,false) || Controller(ctrl_e, false,false,false) || ControllerStation(false, false, false,false,false, false)
 ));
