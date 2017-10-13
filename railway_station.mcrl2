@@ -42,10 +42,14 @@ eqn controller_to_nextTrain(ctrl_w) = track_2;
 	controller_to_nextTrain(ctrl_e) = track_1;
 
 
+map controller_to_incomingTrain: ControllerId -> TrackId;
+eqn controller_to_incomingTrain(ctrl_w) = track_1;
+	controller_to_incomingTrain(ctrl_e) = track_2;
+
 
 act setColor: SignalId # Color;
       sensorTriggered: SensorId;
-      setSwitchPosition: SwitchId # SwitchPos;
+      setSwitchPosition: TrackId # TrackId;
       s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
       s_trainIncoming :TrackId;
 
@@ -53,14 +57,14 @@ act setColor: SignalId # Color;
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
 
-  r_trackOccupied(track_1, true).setColor(sig_t1, red).ControllerStation(waiting_t1 = true)
-+ r_trackOccupied(track_2, true).setColor(sig_t2, red).ControllerStation(waiting_t2 = true)
+  r_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
++ r_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
 
-+ (waiting_t1 == true)->s_trackOccupied(controller_to_track(ctrl_w),false).ControllerStation(waiting_t1 = false, listening_t1 = true)
++ (waiting_t1 == true)->s_trackOccupied(controller_to_track(ctrl_w),false).setColor(sig_t1, red).ControllerStation(waiting_t1 = false, listening_t1 = true)
 + (listening_t1 == true)->r_trackOccupied(controller_to_track(ctrl_w),false)
 .setColor(sig_t1, green).ControllerStation(listening_t1 = false)
 
-+ (waiting_t2 == true)->s_trackOccupied(controller_to_track(ctrl_e),false).ControllerStation(waiting_t2 = false, listening_t2 = true)
++ (waiting_t2 == true)->s_trackOccupied(controller_to_track(ctrl_e),false).setColor(sig_t2, red).ControllerStation(waiting_t2 = false, listening_t2 = true)
 + (listening_t2 == true)->r_trackOccupied(controller_to_track(ctrl_e),false)
 .setColor(sig_t2, green).ControllerStation(listening_t2 = false)
 
@@ -68,24 +72,24 @@ proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bo
 + r_trackOccupied(track_1, false).ControllerStation(TrainIncomingEast = true)
 + r_trackOccupied(track_2, false).ControllerStation(TrainIncomingWest = true)
 
-+ (!waiting_t1 && TrainIncomingEast==true)-> s_trackOccupied(track_1,false).ControllerStation(TrainIncomingEast = false)
-+ (!waiting_t2 && TrainIncomingWest==true)-> s_trackOccupied(track_2,false).ControllerStation(TrainIncomingWest = false);
++ ((!listening_t1 && !waiting_t1) && TrainIncomingEast==true)-> s_trackOccupied(track_1,false).ControllerStation(TrainIncomingEast = false)
++ ((!listening_t2 && !waiting_t2) && TrainIncomingWest==true)-> s_trackOccupied(track_2,false).ControllerStation(TrainIncomingWest = false);
 
 
 
 proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listening: Bool) = 
 
 (!waiting && !listening)-> sum s:SensorId.(sensor_to_controller(s) == ctrl)-> sensorTriggered(s)
-.setColor(controller_to_signal(ctrl),red).Controller(waiting = true)
+.Controller(waiting = true)
 
-+ (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).Controller(waiting = false, listening = true)
++ (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).setColor(controller_to_signal(ctrl),red).Controller(waiting = false, listening = true)
 
-+ (listening == true) ->r_trackOccupied(controller_to_nextTrain(ctrl), false)
++ (listening == true) ->r_trackOccupied(controller_to_nextTrain(ctrl), false).setSwitchPosition(controller_to_track(ctrl),controller_to_nextTrain(ctrl))
 .setColor(controller_to_signal(ctrl),green).s_trackOccupied(controller_to_nextTrain(ctrl),true).Controller(listening = false)
 
 + r_trackOccupied(controller_to_track(ctrl), false).Controller(TrainIncoming = true)
 
-+ (!waiting && TrainIncoming == true) -> s_trackOccupied(controller_to_track(ctrl),false).Controller(TrainIncoming = false);
++ ((!listening && !waiting) && TrainIncoming == true) -> setSwitchPosition(controller_to_track(ctrl),controller_to_incomingTrain(ctrl)).s_trackOccupied(controller_to_track(ctrl),false).Controller(TrainIncoming = false);
 
 
 
