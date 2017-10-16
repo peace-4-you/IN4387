@@ -43,7 +43,6 @@ act setColor: SignalId # Color;
       sensorTriggered: SensorId;
       setSwitchPosition: TrackId # TrackId;
       s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
-      s_trainIncoming :TrackId;
 
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
