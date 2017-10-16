@@ -5,7 +5,6 @@ sort SignalId        = struct sig_t1 | sig_t2 | sig_w | sig_e;
         SensorId      = struct sens_w | sens_e;
         SwitchId      = struct switch_e | switch_w;
         SwitchPos   = struct pos_t1 | pos_t2;
-        TrackStatus = struct free | occupied;
 
 map sensor_to_controller: SensorId -> ControllerId;
 eqn  sensor_to_controller(sens_w) = ctrl_w;
@@ -31,16 +30,9 @@ map controller_to_sensor: ControllerId -> SensorId;
 eqn  controller_to_sensor(ctrl_w) = sens_w;
         controller_to_sensor(ctrl_e)  = sens_e;
 
-map signal_to_track: SignalId -> TrackId;
-eqn  signal_to_track(sig_w) = track_2;
-        signal_to_track(sig_e)  = track_1;
-        signal_to_track(sig_t1) = track_w;
-        signal_to_track(sig_t2) = track_e;
-
 map controller_to_nextTrain: ControllerId -> TrackId;
 eqn controller_to_nextTrain(ctrl_w) = track_2;
 	controller_to_nextTrain(ctrl_e) = track_1;
-
 
 map controller_to_incomingTrain: ControllerId -> TrackId;
 eqn controller_to_incomingTrain(ctrl_w) = track_1;
@@ -52,7 +44,6 @@ act setColor: SignalId # Color;
       setSwitchPosition: TrackId # TrackId;
       s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
       s_trainIncoming :TrackId;
-
 
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
@@ -85,7 +76,7 @@ proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listenin
 + (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).setColor(controller_to_signal(ctrl),red).Controller(waiting = false, listening = true)
 
 + (listening == true) ->r_trackOccupied(controller_to_nextTrain(ctrl), false).setSwitchPosition(controller_to_track(ctrl),controller_to_nextTrain(ctrl))
-.setColor(controller_to_signal(ctrl),green).s_trackOccupied(controller_to_nextTrain(ctrl),true).Controller(listening = false)
+.setColor(controller_to_signal(ctrl),green).setColor(controller_to_signal(ctrl), red).s_trackOccupied(controller_to_nextTrain(ctrl),true).Controller(listening = false)
 
 + r_trackOccupied(controller_to_track(ctrl), false).Controller(TrainIncoming = true)
 
