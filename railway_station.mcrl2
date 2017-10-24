@@ -51,22 +51,25 @@ act setColor: SignalId # Color;
       sensorTriggered: SensorId;
       setSwitchPosition: TrackId # TrackId;
       s_trackOccupied, r_trackOccupied, trackOccupied: TrackId # Bool;
-      s_trainIncoming :TrackId;
-
+      s_trainIncomingSignal, r_trainIncomingSignal, trainIncomingSignal :TrackId;
+      s_trainArrived, r_trainArrived, trainArrived : TrackId;
+      
 
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
 
+% The controller station recieves a signal from the E/W Controller that there is a train coming on its track,
+% Next the controllerstation informs Environment controller that a train has lest E/W station and updates its waiting status. 
   r_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
 + r_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
 
-+ (waiting_t1 == true)->s_trackOccupied(controller_to_track(ctrl_w),false).setColor(sig_t1, red).ControllerStation(waiting_t1 = false, listening_t1 = true)
-+ (listening_t1 == true)->r_trackOccupied(controller_to_track(ctrl_w),false)
-.setColor(sig_t1, green).ControllerStation(listening_t1 = false)
++ (waiting_t1 == true)->s_trackOccupied(track_w,false).s_trainArrived(track_1).setColor(sig_t1, red).ControllerStation(waiting_t1 = false, listening_t1 = true)
++ (listening_t1 == true)->r_trackOccupied(track_w,false)
+.setColor(sig_t1, green).s_trainIncomingSignal(track_1).ControllerStation(listening_t1 = false)
 
-+ (waiting_t2 == true)->s_trackOccupied(controller_to_track(ctrl_e),false).setColor(sig_t2, red).ControllerStation(waiting_t2 = false, listening_t2 = true)
-+ (listening_t2 == true)->r_trackOccupied(controller_to_track(ctrl_e),false)
-.setColor(sig_t2, green).ControllerStation(listening_t2 = false)
++ (waiting_t2 == true)->s_trackOccupied(track_e,false).s_trainArrived(track_2).setColor(sig_t2, red).ControllerStation(waiting_t2 = false, listening_t2 = true)
++ (listening_t2 == true)->r_trackOccupied(track_e,false)
+.setColor(sig_t2, green).s_trainIncomingSignal(track_2).ControllerStation(listening_t2 = false)
 
 
 + r_trackOccupied(track_1, false).ControllerStation(TrainIncomingEast = true)
@@ -79,8 +82,7 @@ proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bo
 
 proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listening: Bool) = 
 
-(!waiting && !listening)-> sum s:SensorId.(sensor_to_controller(s) == ctrl)-> sensorTriggered(s)
-.Controller(waiting = true)
+(!waiting && !listening)-> r_trainIncomingSignal(controller_to_track(ctrl)).Controller(waiting = true)
 
 + (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).setColor(controller_to_signal(ctrl),red).Controller(waiting = false, listening = true)
 
@@ -92,11 +94,23 @@ proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listenin
 + ((!listening && !waiting) && TrainIncoming == true) -> setSwitchPosition(controller_to_track(ctrl),controller_to_incomingTrain(ctrl)).s_trackOccupied(controller_to_track(ctrl),false).Controller(TrainIncoming = false);
 
 
+proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bool, ListenWest: Bool, ListenEast: Bool) =
+
+(TrainCounter < 3 && WaitingWest == false && ListenWest== false)->sensorTriggered(sens_w).EnvironmentController(WaitingWest = true,TrainCounter = succ(TrainCounter))
++(WaitingWest == true)->s_trainIncomingSignal(track_w).EnvironmentController(WaitingWest = false, ListenWest =true)
++(ListenWest == true)->r_trainArrived(track_2).EnvironmentController(ListenWest = false)
 
 
++(TrainCounter < 3 && WaitingEast == false && ListenEast== false)->sensorTriggered(sens_e).EnvironmentController(WaitingEast = true,TrainCounter = succ(TrainCounter))
++(WaitingEast == true)->s_trainIncomingSignal(track_e).EnvironmentController(WaitingEast = false, ListenEast =true)
++(ListenEast == true)->r_trainArrived(track_1).EnvironmentController(ListenEast = false)
+
+
++r_trainIncomingSignal(track_1).EnvironmentController(TrainCounter = pred(TrainCounter))
++r_trainIncomingSignal(track_2).EnvironmentController(TrainCounter = pred(TrainCounter));
 
 init 
-allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied},
-comm({s_trackOccupied | r_trackOccupied -> trackOccupied},
-Controller(ctrl_w, false,false,false) || Controller(ctrl_e, false,false,false) || ControllerStation(false, false, false,false,false, false)
+allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied,trainIncomingSignal,trainArrived},
+comm({s_trackOccupied | r_trackOccupied -> trackOccupied, s_trainIncomingSignal | r_trainIncomingSignal -> trainIncomingSignal, s_trainArrived | r_trainArrived -> trainArrived},
+Controller(ctrl_w, false,false,false) || Controller(ctrl_e, false,false,false) || ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
 ));
