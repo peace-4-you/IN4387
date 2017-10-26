@@ -1,0 +1,3 @@
+<true*.setColor(sig_w,green).setSwitchPosition(track_w,track_2)>true 
+&&
+[true*.setColor(sig_w,green).!setSwitchPosition(track_w,track_2)]false
