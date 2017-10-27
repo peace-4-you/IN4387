@@ -1,1 +1,1 @@
-[true*.sensorTriggered(sens_w)][true*.!(setColor(sig_w,green))]false
+[true*.sensorTriggered(sens_w)]<true*.(setColor(sig_w,green))>true
