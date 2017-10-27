@@ -1,1 +1,1 @@
-[true*.setColor(sig_e,green)][true*.!(setColor(sig_t1,green))]false
+[true*.setColor(sig_e,green)]<true*.(setColor(sig_t1,green))>true
