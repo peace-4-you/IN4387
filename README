@@ -1,0 +1,5 @@
+This file explains the contents of the submission folder for the System Validatin Lab
+
+1. SystemValidationGroup10.pdf: This file is the final report of the project. 
+2. railway_station.mcrl2: This file has the source code for simulating the distributed embedded system.
+3. requirement1.mcf - requirement14.mcf: These files contain the individual formal requirements.

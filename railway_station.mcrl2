@@ -1,3 +1,7 @@
+% This code simulates the design of a distributed embedded system for controlling the lights and the
+% switches of a small railway station
+
+
 sort SignalId        = struct sig_t1 | sig_t2 | sig_w | sig_e;
         Color            = struct red | green;
         TrackId        = struct track_1 | track_2 | track_w | track_e;
@@ -54,12 +58,14 @@ act setColor: SignalId # Color;
       s_trainIncomingSignal, r_trainIncomingSignal, trainIncomingSignal :TrackId;
       s_trainArrived, r_trainArrived, trainArrived : TrackId;
       
-
+% This process ControllerStation, models the behaviour of the Controller station.
+% Explanation of the different states of the process
+% waiting_t1/waiting_t2 : Tells if a train waiting at Track1/2
+% TrainIncomingEast/TrainIncomingWest: Tells if a train wants to enter the Track1/2 from East or West  
+% listening_t1/listening_t2: Tells if it is waiting for a response from the Controller East/West to depart its waiting train
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
-
-% The controller station recieves a signal from the E/W Controller that there is a train coming on its track,
-% Next the controllerstation informs Environment controller that a train has lest E/W station and updates its waiting status. 
+ 
   r_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
 + r_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
 
@@ -78,6 +84,11 @@ proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bo
 + ((!listening_t1 && !waiting_t1) && TrainIncomingEast==true)-> s_trackOccupied(track_1,false).ControllerStation(TrainIncomingEast = false)
 + ((!listening_t2 && !waiting_t2) && TrainIncomingWest==true)-> s_trackOccupied(track_2,false).ControllerStation(TrainIncomingWest = false);
 
+% This process Controller, models the behaviour of the Controller East and West.
+% Explanation of the different states of the process
+% ctrl: Tells which controller is it.
+% TrainIncoming: Tells if a train wants to enter the Track from Track 1/2
+% listening: Tells if it is waiting for a response from the Controller station to depart its waiting train.
 
 
 proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listening: Bool) = 
@@ -93,6 +104,10 @@ proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listenin
 
 + ((!listening && !waiting) && TrainIncoming == true) -> setSwitchPosition(controller_to_track(ctrl),controller_to_incomingTrain(ctrl)).s_trackOccupied(controller_to_track(ctrl),false).Controller(TrainIncoming = false);
 
+% This process EnvironmentController, models a controller that is controlling the number of trains entering into this railway station.
+% TrainCounter: Tells the number of trains currently in the station.
+% WaitingWest/WaitingEast: Tells if West/East sensor is triggered 
+% ListenWest/ListenEast: Tells if EnvironmentController is waiting for a response from Controller Station about the status of train arrival
 
 proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bool, ListenWest: Bool, ListenEast: Bool) =
 
