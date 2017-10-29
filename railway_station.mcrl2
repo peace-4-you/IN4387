@@ -6,7 +6,6 @@ sort 	  SignalId         = struct sig_t1 | sig_t2 | sig_w | sig_e;
         TrackId        	= struct track_1 | track_2 | track_w | track_e;
         ControllerId   	= struct ctrl_w | ctrl_e;
         SensorId      	= struct sens_w | sens_e;
-        SwitchId      	= struct switch_e | switch_w;
 
 map  	controller_to_signal: ControllerId -> SignalId;
 eqn  	controller_to_signal(ctrl_w) = sig_w;
