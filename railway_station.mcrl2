@@ -23,6 +23,10 @@ map 	controller_to_incomingTrain: ControllerId -> TrackId;
 eqn 	controller_to_incomingTrain(ctrl_w) = track_1;
 	 	controller_to_incomingTrain(ctrl_e) = track_2;
 
+map controller_to_sensor: ControllerId -> SensorId;
+eqn  controller_to_sensor(ctrl_w) = sens_w;
+        controller_to_sensor(ctrl_e)  = sens_e;
+
 
 act setColor: SignalId # Color;
       sensorTriggered: SensorId;
@@ -66,7 +70,7 @@ proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bo
 
 proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listening: Bool) = 
 
-(!waiting && !listening)-> r_trainIncomingSignal(controller_to_track(ctrl)).Controller(waiting = true)
+(!waiting && !listening)-> r_trainIncomingSignal(controller_to_track(ctrl)).sensorTriggered(controller_to_sensor(ctrl)).Controller(waiting = true)
 
 + (waiting == true) -> s_trackOccupied(controller_to_nextTrain(ctrl),false).setColor(controller_to_signal(ctrl),red).Controller(waiting = false, listening = true)
 
@@ -80,18 +84,15 @@ proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listenin
 
 % This process EnvironmentController, models a controller that is controlling the number of trains entering into this railway station.
 % TrainCounter: Tells the number of trains currently in the station.
-% WaitingWest/WaitingEast: Tells if West/East sensor is triggered 
 % ListenWest/ListenEast: Tells if EnvironmentController is waiting for a response from Controller Station about the status of train arrival
 
 proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bool, ListenWest: Bool, ListenEast: Bool) =
 
-(TrainCounter < 3 && WaitingWest == false && ListenWest== false)->sensorTriggered(sens_w).EnvironmentController(WaitingWest = true,TrainCounter = succ(TrainCounter))
-+(WaitingWest == true)->s_trainIncomingSignal(track_w).EnvironmentController(WaitingWest = false, ListenWest =true)
+(TrainCounter < 3 && ListenWest== false)->s_trainIncomingSignal(track_w).EnvironmentController(ListenWest =true,TrainCounter = succ(TrainCounter))
 +(ListenWest == true)->r_trainArrived(track_2).EnvironmentController(ListenWest = false)
 
 
-+(TrainCounter < 3 && WaitingEast == false && ListenEast== false)->sensorTriggered(sens_e).EnvironmentController(WaitingEast = true,TrainCounter = succ(TrainCounter))
-+(WaitingEast == true)->s_trainIncomingSignal(track_e).EnvironmentController(WaitingEast = false, ListenEast =true)
++(TrainCounter < 3 && ListenEast== false)->s_trainIncomingSignal(track_e).EnvironmentController(WaitingEast = false, ListenEast =true,TrainCounter = succ(TrainCounter))
 +(ListenEast == true)->r_trainArrived(track_1).EnvironmentController(ListenEast = false)
 
 
@@ -101,5 +102,5 @@ proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bo
 init 
 allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied,trainIncomingSignal,trainArrived},
 comm({s_trackOccupied | r_trackOccupied -> trackOccupied, s_trainIncomingSignal | r_trainIncomingSignal -> trainIncomingSignal, s_trainArrived | r_trainArrived -> trainArrived},
-Controller(ctrl_w, false,false,false) || Controller(ctrl_e, false,false,false) ||ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
+Controller(ctrl_e, false,false,false) || Controller(ctrl_w, false,false,false) || ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
 ));
