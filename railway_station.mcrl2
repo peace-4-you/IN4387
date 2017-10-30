@@ -39,9 +39,6 @@ act setColor: SignalId # Color;
 
 proc ControllerStation(waiting_t1: Bool, waiting_t2: Bool, TrainIncomingWest: Bool, TrainIncomingEast: Bool, listening_t1: Bool, listening_t2: Bool) = 
 
-% The controller station recieves a signal from the E/W Controller that there is a train coming on its track,
-% Next the controllerstation informs Environment controller that a train has lest E/W station and updates its waiting status.
-
   r_trackOccupied(track_1, true).ControllerStation(waiting_t1 = true)
 + r_trackOccupied(track_2, true).ControllerStation(waiting_t2 = true)
 
