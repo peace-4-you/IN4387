@@ -86,7 +86,7 @@ proc Controller(ctrl: ControllerId, waiting: Bool, TrainIncoming: Bool, listenin
 % TrainCounter: Tells the number of trains currently in the station.
 % ListenWest/ListenEast: Tells if EnvironmentController is waiting for a response from Controller Station about the status of train arrival
 
-proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bool, ListenWest: Bool, ListenEast: Bool) =
+proc EnvironmentController(TrainCounter: Int, ListenWest: Bool, ListenEast: Bool) =
 
 (TrainCounter < 3 && ListenWest== false)->s_trainIncomingSignal(track_w).EnvironmentController(ListenWest =true,TrainCounter = succ(TrainCounter))
 +(ListenWest == true)->r_trainArrived(track_2).EnvironmentController(ListenWest = false)
