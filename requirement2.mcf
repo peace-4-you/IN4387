@@ -1,7 +1,15 @@
-[true*.sensorTriggered(sens_e).setColor(sig_e,green)*.(!(setColor(sig_t1,green)))*
-.sensorTriggered(sens_e)*.(!(setColor(sig_e,green)))*.setColor(sig_e,green)*]false
+[true*.sensorTriggered(sens_e).setColor(sig_e,green)*.!(setColor(sig_t1,green))*
+.sensorTriggered(sens_e)*.!(setColor(sig_e,green))*.setColor(sig_e,green)*]false
 
 &&
 
-[true*.sensorTriggered(sens_w).setColor(sig_w,green)*.(!(setColor(sig_t2,green)))*
-.sensorTriggered(sens_w)*.(!(setColor(sig_t2,green)))*.setColor(sig_w,green)*]false
+[true*.sensorTriggered(sens_w).setColor(sig_w,green)*.!(setColor(sig_t2,green))*
+.sensorTriggered(sens_w)*.!(setColor(sig_t2,green))*.setColor(sig_w,green)*]false
+
+&&
+
+[true*.sensorTriggered(sens_e].!(setColor(sig_e, green))*.setColor(sig_t1, green)*]false
+
+&&
+
+[true*.sensorTriggered(sens_w].!(setColor(sig_w, green))*.setColor(sig_t2, green)*]false
