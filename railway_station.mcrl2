@@ -92,7 +92,7 @@ proc EnvironmentController(TrainCounter: Int, ListenWest: Bool, ListenEast: Bool
 +(ListenWest == true)->r_trainArrived(track_2).EnvironmentController(ListenWest = false)
 
 
-+(TrainCounter < 3 && ListenEast== false)->s_trainIncomingSignal(track_e).EnvironmentController(WaitingEast = false, ListenEast =true,TrainCounter = succ(TrainCounter))
++(TrainCounter < 3 && ListenEast== false)->s_trainIncomingSignal(track_e).EnvironmentController(ListenEast =true,TrainCounter = succ(TrainCounter))
 +(ListenEast == true)->r_trainArrived(track_1).EnvironmentController(ListenEast = false)
 
 
@@ -102,5 +102,5 @@ proc EnvironmentController(TrainCounter: Int, ListenWest: Bool, ListenEast: Bool
 init 
 allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied,trainIncomingSignal,trainArrived},
 comm({s_trackOccupied | r_trackOccupied -> trackOccupied, s_trainIncomingSignal | r_trainIncomingSignal -> trainIncomingSignal, s_trainArrived | r_trainArrived -> trainArrived},
-Controller(ctrl_e, false,false,false) || Controller(ctrl_w, false,false,false) || ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
+Controller(ctrl_e, false,false,false) || Controller(ctrl_w, false,false,false) || ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false)
 ));
