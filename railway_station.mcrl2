@@ -101,5 +101,5 @@ proc EnvironmentController(TrainCounter: Int, WaitingWest: Bool, WaitingEast: Bo
 init 
 allow({setColor, sensorTriggered, setSwitchPosition, trackOccupied,trainIncomingSignal,trainArrived},
 comm({s_trackOccupied | r_trackOccupied -> trackOccupied, s_trainIncomingSignal | r_trainIncomingSignal -> trainIncomingSignal, s_trainArrived | r_trainArrived -> trainArrived},
-Controller(ctrl_w, false,false,false) || ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
+Controller(ctrl_w, false,false,false) || Controller(ctrl_e, false,false,false) ||ControllerStation(false, false, false,false,false, false) || EnvironmentController(0,false,false,false,false)
 ));
